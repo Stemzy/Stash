@@ -1,0 +1,84 @@
+/*
+ * Design tokens. These are the Default (Graphite) values; the other themes
+ * override the same variables at runtime from src/entities/settings/themes.ts.
+ * Tailwind v4 turns each --color-* into utilities like bg-raised, text-fg-2, border-line.
+ */
+@theme {
+  /* Surfaces */
+  --color-base: #0e0f11; /* window background */
+  --color-raised: #16181b; /* panels */
+  --color-sidebar: #16181b;
+  --color-surface: rgb(20 22 25 / 0.92); /* solid content panels (Graphite Glass) */
+  --color-elevated: #1c1e22;
+  --color-hover: rgb(255 255 255 / 0.05);
+  --color-selected: rgb(143 168 200 / 0.11);
+  --color-overlay: rgb(28 30 34 / 0.72); /* popovers, drawer, toasts (+ backdrop blur) */
+
+  /* Lines */
+  --color-line: rgb(255 255 255 / 0.06); /* hairline dividers */
+  --color-line-strong: rgb(255 255 255 / 0.12); /* inputs, focused panels */
+
+  /* Text */
+  --color-fg: #ecedee; /* titles, values */
+  --color-fg-2: #9a9da3; /* labels, metadata */
+  --color-fg-3: #5f636a; /* hints, disabled */
+
+  /* Accent and status (status colors are for status only, never decoration) */
+  --color-accent: #8fa8c8; /* dusty steel blue */
+  --color-success: #7fb89a;
+  --color-warning: #d4b072;
+  --color-danger: #d9817a;
+  --color-accent-hover: #9db4d1;
+  --color-accent-press: #86a0c0;
+  --color-on-accent: #0d1014; /* text/icons on a filled accent */
+
+  /* Neutral overlays: ink = hovers, borders and input fills (white on dark
+     themes, a soft dark tint on light ones); shade = quiet darker backdrops. */
+  --color-ink: #ffffff;
+  --color-shade: #000000;
+
+  /* Shape */
+  --radius-sm: 6px; /* inputs, buttons */
+  --radius-md: 10px; /* panels */
+
+  /* Type */
+  --font-sans: 'Inter Variable', 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  --text-title: 22px;
+  --text-title--line-height: 28px;
+  --text-section: 15px;
+  --text-section--line-height: 20px;
+  --text-body: 13px;
+  --text-body--line-height: 18px;
+  --text-label: 12px;
+  --text-label--line-height: 16px;
+  --text-meta: 11px;
+  --text-meta--line-height: 14px;
+
+  /* Motion (used by CSS transitions; Motion for React uses src/shared/lib/motion.ts) */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Non-colour theme values (materials, shadows), Default theme. Overridden per theme at runtime. */
+:root {
+  --focus-halo: rgb(143 168 200 / 0.12);
+  --card-bg: rgb(255 255 255 / 0.03);
+  --shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.035), 0 1px 2px rgb(0 0 0 / 0.25);
+  --glass-panel-bg: rgb(22 24 27 / 0.82);
+  --glass-popover-bg: rgb(27 29 33 / 0.97);
+  --glass-toast-bg: rgb(26 28 32 / 0.9);
+  --glass-bar-bg: rgb(17 18 21 / 0.84);
+  --glass-bar-hover: rgb(24 26 29 / 0.88);
+  --glass-sheet-bg: rgb(20 21 24 / 0.9);
+  --glass-border: rgb(255 255 255 / 0.08);
+  --glass-highlight: rgb(255 255 255 / 0.05);
+  --scrim-bg: rgb(8 9 10 / 0.5);
+  --shadow-panel: 0 0 0 1px rgb(0 0 0 / 0.3), 0 24px 64px rgb(0 0 0 / 0.5);
+  --shadow-popover: 0 12px 32px rgb(0 0 0 / 0.45);
+  --shadow-sheet: 0 -16px 40px rgb(0 0 0 / 0.35);
+  --shadow-bar: 0 -8px 24px rgb(0 0 0 / 0.25);
+  --scrollbar: rgb(255 255 255 / 0.08);
+  --scrollbar-hover: rgb(255 255 255 / 0.14);
+  --selection: rgb(143 168 200 / 0.35);
+  --sheen: rgb(255 255 255 / 0.05);
+  color-scheme: dark;
+}

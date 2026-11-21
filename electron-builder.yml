@@ -1,0 +1,16 @@
+appId: com.aqua.stash
+productName: Stash
+directories:
+  output: release
+files:
+  - out/**
+  - package.json
+win:
+  target: nsis
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+extraResources:
+  # Media tools from `npm run fetch-binaries`, shipped next to the app.
+  - from: resources/bin/${platform}-${arch}
+    to: bin
