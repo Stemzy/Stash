@@ -14,3 +14,10 @@ extraResources:
   # Media tools from `npm run fetch-binaries`, shipped next to the app.
   - from: resources/bin/${platform}-${arch}
     to: bin
+# In-app updates: the app checks this repo's Releases for a newer version.
+# Each release needs the installer, its .blockmap and latest.yml (all in release/).
+publish:
+  provider: github
+  owner: Stemzy
+  repo: Stash
+  releaseType: release

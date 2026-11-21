@@ -68,7 +68,8 @@ if (!app.requestSingleInstanceLock()) {
     handleThumbScheme()
     handleMediaScheme()
     registerSystemIpc()
-    await registerUpdatesIpc()
+    // Updates are extras: a failure here must never stop the window from opening.
+    await registerUpdatesIpc().catch((e) => console.warn('updates unavailable', e))
     registerMediaIpc()
     await registerJobsIpc() // loads saved jobs before the window asks for them
     registerLibraryIpc()

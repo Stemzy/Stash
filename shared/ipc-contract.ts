@@ -1,7 +1,7 @@
 // The whole surface the renderer can call through window.api.
 // Every channel is validated in the main process before anything runs.
 
-import type { AnalyzeResult, ToolStatus, ToolUpdateProgress, ToolUpdateState } from './types/media'
+import type { AnalyzeResult, AppUpdateStatus, ToolStatus, ToolUpdateProgress, ToolUpdateState } from './types/media'
 import type { AudioJobRequest, DownloadJob, VideoJobRequest } from './types/job'
 import type { LibraryItem } from './types/library'
 import type { ExportDone, ExportSettings, KeyAnalysis, TempoAnalysis, LabOpened, LabProgress, LabResult, LabUserMeta, PeakReading, PrepSettings, PreviewRender, TrimRegion, WaveformData, WaveSlice } from './types/lab'
@@ -15,6 +15,13 @@ export const IPC = {
   updatesSetAuto: 'updates:set-auto',
   updatesCheck: 'updates:check',
   updatesProgress: 'updates:progress',
+  appUpdateStatus: 'app-update:status',
+  appUpdateCheck: 'app-update:check',
+  appUpdateDownload: 'app-update:download',
+  appUpdateInstall: 'app-update:install',
+  appUpdateLater: 'app-update:later',
+  appUpdateSkip: 'app-update:skip',
+  appUpdateChanged: 'app-update:changed',
   analyze: 'media:analyze',
   cancelAnalyze: 'media:cancel-analyze',
   enqueueAudio: 'jobs:enqueue-audio',
@@ -68,6 +75,18 @@ export interface StashApi {
     /** Check (and install) now, whatever the automatic setting. */
     checkNow(): Promise<ToolUpdateState>
     onProgress(cb: (p: ToolUpdateProgress) => void): () => void
+  }
+  /** Updating Stash itself from its GitHub releases (installed app only). */
+  appUpdate: {
+    status(): Promise<AppUpdateStatus>
+    /** `true` when the user pressed "Check for updates" (shows errors and skipped versions). */
+    check(byUser?: boolean): Promise<AppUpdateStatus>
+    download(): Promise<void>
+    /** Quits and installs the downloaded update. */
+    install(): Promise<void>
+    later(): Promise<void>
+    skip(): Promise<void>
+    onChange(cb: (s: AppUpdateStatus) => void): () => void
   }
   media: {
     /** `requestId` lets the renderer cancel a slow analysis. */

@@ -17,7 +17,7 @@ import { SegmentedControl } from '@/shared/ui/SegmentedControl'
 import { Select } from '@/shared/ui/Select'
 import { Switch } from '@/shared/ui/Switch'
 import { notify } from '@/shared/ui/toast'
-import { useUpdates, updatesActions } from '@/entities/updates/model'
+import { appUpdateActions, useAppUpdate, useUpdates, updatesActions } from '@/entities/updates/model'
 
 // Settings opens as a window over the app: the app behind is blurred and
 // dimmed, the panel itself is semi-transparent. Sections on the left, a search
@@ -101,6 +101,8 @@ export function SettingsModal() {
   const { open, section } = useSettingsUi()
   const s = useSettings()
   const upd = useUpdates()
+  const appUpd = useAppUpdate()
+  const [appChecking, setAppChecking] = useState(false)
   const [updChecking, setUpdChecking] = useState(false)
   const historyCount = useJobs().filter((j) => !isActive(j)).length
   const [query, setQuery] = useState('')
@@ -326,6 +328,37 @@ export function SettingsModal() {
       },
       {
         section: 'about',
+        title: 'App updates',
+        body:
+          appUpd.status.phase === 'unsupported'
+            ? 'Stash checks for new versions when it is installed (not while running from the project folder).'
+            : appUpd.status.phase === 'ready'
+              ? `Stash ${appUpd.status.version} is downloaded and installs when you restart.`
+              : 'Stash checks for new versions on its own and asks before downloading anything.',
+        keywords: 'update upgrade new version release patch',
+        control:
+          appUpd.status.phase === 'ready' ? (
+            <Button size="sm" variant="primary" onClick={appUpdateActions.install}>
+              Restart now
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              disabled={appUpd.status.phase === 'unsupported' || appUpd.status.phase === 'downloading'}
+              loading={appChecking}
+              onClick={async () => {
+                setAppChecking(true)
+                const st = await appUpdateActions.check()
+                setAppChecking(false)
+                if (st.phase === 'idle') notify({ tone: 'success', title: 'Stash is up to date', body: `You have the latest version (${st.current}).` })
+              }}
+            >
+              Check for updates
+            </Button>
+          )
+      },
+      {
+        section: 'about',
         title: 'Responsible use',
         body: 'Only download content you own or have permission to save. Copy-protected (DRM) content is not supported.',
         keywords: 'legal copyright drm',
@@ -333,7 +366,7 @@ export function SettingsModal() {
       }
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [s, upd, updChecking, historyCount, tools, checking, missing]
+    [s, upd, updChecking, appUpd, appChecking, historyCount, tools, checking, missing]
   )
 
   const q = query.trim().toLowerCase()

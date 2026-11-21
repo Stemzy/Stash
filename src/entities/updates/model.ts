@@ -1,4 +1,4 @@
-import type { ToolUpdateProgress, ToolUpdateState } from '@shared/types/media'
+import type { AppUpdateStatus, ToolUpdateProgress, ToolUpdateState } from '@shared/types/media'
 import { api, isElectron } from '@/shared/api'
 import { createStore, useStore } from '@/shared/lib/store'
 
@@ -59,4 +59,37 @@ export const updatesActions = {
 if (isElectron) {
   api.updates.onProgress(onProgress)
   void refresh()
+}
+
+// ── Stash itself ──────────────────────────────────────────────────────────
+
+
+interface AppUpdateUi {
+  status: AppUpdateStatus
+  /** "Later" on the restart prompt hides it for this version (it still installs on quit). */
+  hiddenReady?: string
+}
+
+export const appUpdateStore = createStore<AppUpdateUi>({ status: { phase: 'unsupported', current: __APP_VERSION__ } })
+export const useAppUpdate = () => useStore(appUpdateStore)
+
+export const appUpdateActions = {
+  check: async () => {
+    const status = await api.appUpdate.check(true)
+    appUpdateStore.set((u) => ({ ...u, status }))
+    return status
+  },
+  download: () => void api.appUpdate.download(),
+  install: () => void api.appUpdate.install(),
+  later: () => {
+    const s = appUpdateStore.get().status
+    if (s.phase === 'ready') appUpdateStore.set((u) => ({ ...u, hiddenReady: s.version }))
+    else void api.appUpdate.later()
+  },
+  skip: () => void api.appUpdate.skip()
+}
+
+if (isElectron) {
+  api.appUpdate.onChange((status) => appUpdateStore.set((u) => ({ ...u, status })))
+  void api.appUpdate.status().then((status) => appUpdateStore.set((u) => ({ ...u, status })))
 }

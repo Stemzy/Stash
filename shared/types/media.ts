@@ -93,3 +93,16 @@ export interface ToolUpdateState {
   progress: ToolUpdateProgress
   last?: { at: number; updated: string[]; error?: string; checkError?: string }
 }
+
+/** Updating Stash itself from its GitHub releases. */
+export interface AppUpdateStatus {
+  phase: 'unsupported' | 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error'
+  /** Version running now. */
+  current: string
+  /** The new version, when there is one. */
+  version?: string
+  notes?: string
+  fraction?: number
+  error?: string
+  checkedAt?: number
+}

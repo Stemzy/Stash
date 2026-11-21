@@ -11,6 +11,19 @@ const api: StashApi = {
     toolsStatus: (refresh) => ipcRenderer.invoke(IPC.toolsStatus, refresh === true),
     setAppearance: (a) => ipcRenderer.invoke(IPC.setAppearance, a)
   },
+  appUpdate: {
+    status: () => ipcRenderer.invoke(IPC.appUpdateStatus),
+    check: (byUser) => ipcRenderer.invoke(IPC.appUpdateCheck, byUser === true),
+    download: () => ipcRenderer.invoke(IPC.appUpdateDownload),
+    install: () => ipcRenderer.invoke(IPC.appUpdateInstall),
+    later: () => ipcRenderer.invoke(IPC.appUpdateLater),
+    skip: () => ipcRenderer.invoke(IPC.appUpdateSkip),
+    onChange: (cb) => {
+      const handler = (_e: unknown, s: Parameters<typeof cb>[0]) => cb(s)
+      ipcRenderer.on(IPC.appUpdateChanged, handler)
+      return () => ipcRenderer.removeListener(IPC.appUpdateChanged, handler)
+    }
+  },
   updates: {
     state: () => ipcRenderer.invoke(IPC.updatesState),
     setAuto: (on) => ipcRenderer.invoke(IPC.updatesSetAuto, on === true),

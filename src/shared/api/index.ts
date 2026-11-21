@@ -16,6 +16,15 @@ const fallback: StashApi = {
     toolsStatus: async () => [],
     setAppearance: async () => undefined
   },
+  appUpdate: {
+    status: async () => ({ phase: 'unsupported', current: __APP_VERSION__ }),
+    check: async () => ({ phase: 'unsupported', current: __APP_VERSION__ }),
+    download: async () => undefined,
+    install: async () => undefined,
+    later: async () => undefined,
+    skip: async () => undefined,
+    onChange: () => () => undefined
+  },
   updates: {
     state: async () => ({ auto: false, progress: { phase: 'idle' } }),
     setAuto: async () => ({ auto: false, progress: { phase: 'idle' } }),
