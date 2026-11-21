@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import type { AudioJobRequest, DownloadJob, VideoJobRequest } from '../../../shared/types/job'
 import { JOB_ERROR_TEXT } from '../../../shared/job-errors'
 import { log } from '../../lib/log'
-import { dropJobTemp, sweepTemp, validateDirectory } from '../../lib/paths'
+import { dropJobTemp, prepareDirectory, sweepTemp } from '../../lib/paths'
 import { requireTools } from '../binaries/tools'
 import { runAudioJob } from '../pipeline/audioJob'
 import { runVideoJob } from '../pipeline/videoJob'
@@ -33,8 +33,9 @@ async function runJob(rec: JobRecord, signal: AbortSignal, onStep: Parameters<ty
   if (rec.request.kind === 'recording') return { ok: false, code: 'UNKNOWN', detail: 'recordings are not downloads' }
   const tools = await requireTools(['ytdlp', 'ffmpeg', 'ffprobe'])
   if (!tools) return { ok: false, code: 'TOOLS_MISSING' }
-  const directory = await validateDirectory(rec.request.req.directory)
-  if (!directory) return { ok: false, code: 'DISK', detail: 'folder missing or not writable' }
+  const folder = await prepareDirectory(rec.request.req.directory)
+  if (!folder.ok) return { ok: false, code: folder.code, detail: folder.detail }
+  const directory = folder.dir
   const id = rec.job.id
   return rec.request.kind === 'audio'
     ? runAudioJob(id, { ...rec.request.req, directory }, tools, signal, onStep, rec.resume)
@@ -103,16 +104,18 @@ async function enqueue(request: Exclude<JobRecord['request'], { kind: 'recording
 
 export async function startAudioJob(raw: AudioJobRequest, url: string, thumbnail: unknown): Promise<Started> {
   if (!validAudioSpec(raw.spec)) return { ok: false, message: 'Those audio settings are not supported.' }
-  const directory = await validateDirectory(raw.directory)
-  if (!directory) return { ok: false, message: JOB_ERROR_TEXT.DISK }
+  const folder = await prepareDirectory(raw.directory)
+  if (!folder.ok) return { ok: false, message: JOB_ERROR_TEXT[folder.code] }
+  const directory = folder.dir
   if (!(await requireTools(['ytdlp', 'ffmpeg', 'ffprobe']))) return { ok: false, message: JOB_ERROR_TEXT.TOOLS_MISSING }
   return enqueue({ kind: 'audio', req: cleanAudioRequest(raw, url, directory) }, thumbnail)
 }
 
 export async function startVideoJob(raw: VideoJobRequest, url: string, thumbnail: unknown): Promise<Started> {
   if (!validVideoSpec(raw.spec)) return { ok: false, message: 'Those video settings are not supported.' }
-  const directory = await validateDirectory(raw.directory)
-  if (!directory) return { ok: false, message: JOB_ERROR_TEXT.DISK }
+  const folder = await prepareDirectory(raw.directory)
+  if (!folder.ok) return { ok: false, message: JOB_ERROR_TEXT[folder.code] }
+  const directory = folder.dir
   if (!(await requireTools(['ytdlp', 'ffmpeg', 'ffprobe']))) return { ok: false, message: JOB_ERROR_TEXT.TOOLS_MISSING }
   return enqueue({ kind: 'video', req: cleanVideoRequest(raw, url, directory) }, thumbnail)
 }

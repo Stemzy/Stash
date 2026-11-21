@@ -32,7 +32,11 @@ export type JobStatus =
   | 'failed'
   | 'canceled'
 
-export type JobErrorCode = MediaErrorCode | 'FFMPEG' | 'DISK' | 'OUTPUT_CHECK'
+/**
+ * DISK is the old catch-all for saving problems (kept so older history still shows text);
+ * new failures say which one it was.
+ */
+export type JobErrorCode = MediaErrorCode | 'FFMPEG' | 'DISK' | 'DISK_FULL' | 'FOLDER_BLOCKED' | 'FOLDER_MISSING' | 'OUTPUT_CHECK'
 
 export interface JobError {
   code: JobErrorCode

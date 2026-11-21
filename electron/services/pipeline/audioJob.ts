@@ -5,7 +5,7 @@ import type { ToolPaths } from '../binaries/binaries'
 import { baseArgs } from '../extractor/extractor'
 import { classifyError, errorDetail } from '../extractor/classifyError'
 import { run } from '../runner/runner'
-import { makeJobTemp, moveInto, removeJobTemp, removeQuietly, reserveUniquePath } from '../../lib/paths'
+import { makeJobTemp, moveInto, removeJobTemp, removeQuietly, reserveUniquePath, saveFailure } from '../../lib/paths'
 import { buildAudioPlan } from './audioArgs'
 import { parseFfmpegProgress, parseYtdlpProgress, YTDLP_PROGRESS_TEMPLATE } from './progress'
 import { probeFile } from './probeFile'
@@ -141,7 +141,7 @@ export async function runAudioJob(
     if (ff.aborted) throw new JobFailure('CANCELED')
     if (ff.code !== 0) {
       const text = ff.stderrTail.join('\n')
-      throw new JobFailure(/No space left|Permission denied/i.test(text) ? 'DISK' : 'FFMPEG', ff.stderrTail.slice(-2).join(' | '))
+      throw new JobFailure(/No space left/i.test(text) ? 'DISK_FULL' : /Permission denied|Operation not permitted/i.test(text) ? 'FOLDER_BLOCKED' : 'FFMPEG', ff.stderrTail.slice(-2).join(' | '))
     }
 
     // 4. Check the result before it reaches the user's folder.
@@ -162,7 +162,8 @@ export async function runAudioJob(
     await removeQuietly(reserved)
     if (e instanceof JobFailure) return { ok: false, code: e.code, detail: e.detail }
     const err = e as NodeJS.ErrnoException
-    if (['ENOSPC', 'EACCES', 'EPERM', 'EROFS', 'ENOENT'].includes(err.code ?? '')) return { ok: false, code: 'DISK', detail: err.code }
+    const problem = await saveFailure(err, req.directory)
+    if (problem) return { ok: false, code: problem, detail: err.code }
     return { ok: false, code: 'UNKNOWN', detail: err.message }
   } finally {
     // Paused: keep the partial download so Resume can continue it.

@@ -1,6 +1,6 @@
 import type { JobErrorCode, VideoJobRequest } from '../../../shared/types/job'
 import type { ToolPaths } from '../binaries/binaries'
-import { makeJobTemp, moveInto, removeJobTemp, removeQuietly, reserveUniquePath, fileExt } from '../../lib/paths'
+import { makeJobTemp, moveInto, removeJobTemp, removeQuietly, reserveUniquePath, fileExt, saveFailure } from '../../lib/paths'
 import { JobFailure, PAUSE, SAFE_FORMAT_ID, ytdlpFetch } from './audioJob'
 import { probeFile } from './probeFile'
 
@@ -134,7 +134,8 @@ export async function runVideoJob(
     await removeQuietly(reserved)
     if (e instanceof JobFailure) return { ok: false, code: e.code, detail: e.detail }
     const err = e as NodeJS.ErrnoException
-    if (['ENOSPC', 'EACCES', 'EPERM', 'EROFS', 'ENOENT'].includes(err.code ?? '')) return { ok: false, code: 'DISK', detail: err.code }
+    const problem = await saveFailure(err, req.directory)
+    if (problem) return { ok: false, code: problem, detail: err.code }
     return { ok: false, code: 'UNKNOWN', detail: err.message }
   } finally {
     if (signal.reason !== PAUSE) await removeJobTemp(tmp)
