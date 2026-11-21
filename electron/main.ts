@@ -23,6 +23,8 @@ function createWindow(): void {
     minHeight: 640,
     show: false,
     backgroundColor: look.background,
+    // The installed app uses the icon built into Stash.exe; this covers running from the project folder.
+    ...(app.isPackaged ? {} : { icon: join(app.getAppPath(), 'build', 'icon.png') }),
     titleBarStyle: 'hidden',
     // Native Windows caption buttons drawn over our own title bar.
     titleBarOverlay: { color: '#00000000', symbolColor: look.symbolColor, height: 36 },

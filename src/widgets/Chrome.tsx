@@ -1,3 +1,4 @@
+import stashIcon from '@/assets/stash-icon-64.png'
 import type { ReactNode } from 'react'
 import { motion } from 'motion/react'
 import { Clapperboard, FlaskConical, Download, History, Library, Music2, Settings } from 'lucide-react'
@@ -13,9 +14,7 @@ export function TitleBar() {
   return (
     <div className="drag relative z-20 flex h-9 shrink-0 items-center gap-3 pl-4 pr-[150px]">
       <div className="flex items-center gap-2">
-        <span className="flex size-4 items-center justify-center rounded-[4px] bg-accent/20 text-accent">
-          <Download size={11} strokeWidth={2} />
-        </span>
+        <img src={stashIcon} alt="" width={16} height={16} className="size-4 shrink-0" draggable={false} />
         <span className="text-label font-semibold">Stash</span>
       </div>
       {!isElectron && (
