@@ -17,7 +17,14 @@ export function registerSystemIpc(): void {
     return res.canceled ? null : res.filePaths[0] ?? null
   })
 
-  ipcMain.handle(IPC.defaultFolders, () => ({ videos: app.getPath('videos'), music: app.getPath('music') }))
+  // Both default to Downloads: Windows' Controlled folder access (ransomware protection)
+  // guards Videos, Music, Documents, Pictures and Desktop, and blocks unknown apps from
+  // saving there. Downloads isn't guarded. `previous` = the old defaults, so saved
+  // settings that were never changed by the user can move over.
+  ipcMain.handle(IPC.defaultFolders, () => {
+    const downloads = app.getPath('downloads')
+    return { videos: downloads, music: downloads, previous: { videos: app.getPath('videos'), music: app.getPath('music') } }
+  })
 
   // Paths stay in the main process; the renderer only needs names and versions.
   ipcMain.handle(IPC.toolsStatus, async (_e, refresh: unknown) =>

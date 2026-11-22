@@ -68,9 +68,29 @@ settingsStore.subscribe(() => {
   }
 })
 
-// Fill in the OS default folders the first time (and any folder added in a later version).
-if (!saved.folders?.videos || !saved.folders?.music) {
-  void api.system.defaultFolders().then((d) => settingsStore.set((s) => ({ ...s, folders: { videos: s.folders.videos || d.videos, music: s.folders.music || d.music } })))
+// Fill in the default folder (Downloads) the first time. Earlier versions defaulted to
+// Videos and Music, which Windows' ransomware protection can block; a saved folder that
+// is still exactly that old default (never changed by the user) moves to Downloads once.
+const FOLDERS_MOVED = 'downloader.folders-to-downloads.v1'
+let movedAlready = false
+try {
+  movedAlready = localStorage.getItem(FOLDERS_MOVED) === '1'
+} catch {
+  /* no storage */
+}
+if (!saved.folders?.videos || !saved.folders?.music || !movedAlready) {
+  void api.system.defaultFolders().then((d) => {
+    const same = (a: string, b?: string) => !!b && a.replace(/[\\/]+$/, '').toLowerCase() === b.replace(/[\\/]+$/, '').toLowerCase()
+    settingsStore.set((s) => {
+      const pick = (cur: string, def: string, old?: string) => (!cur || (!movedAlready && same(cur, old)) ? def : cur)
+      return { ...s, folders: { videos: pick(s.folders.videos, d.videos, d.previous?.videos), music: pick(s.folders.music, d.music, d.previous?.music) } }
+    })
+    try {
+      localStorage.setItem(FOLDERS_MOVED, '1')
+    } catch {
+      /* no storage */
+    }
+  })
 }
 
 // The main process runs the queue, so it needs the limit too.

@@ -63,7 +63,8 @@ export interface StashApi {
   platform: string
   system: {
     pickFolder(current?: string): Promise<string | null>
-    defaultFolders(): Promise<{ videos: string; music: string }>
+    /** Where downloads go unless the user picks a folder (Downloads), plus the old defaults. */
+    defaultFolders(): Promise<{ videos: string; music: string; previous?: { videos: string; music: string } }>
     toolsStatus(refresh?: boolean): Promise<ToolStatus[]>
     /** Theme → window chrome: caption-button colours, native light/dark, startup background. */
     setAppearance(a: { mode: 'dark' | 'light'; symbolColor: string; background: string }): Promise<void>

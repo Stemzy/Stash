@@ -12,7 +12,7 @@ const fallback: StashApi = {
   platform: 'browser',
   system: {
     pickFolder: async () => null,
-    defaultFolders: async () => ({ videos: 'C:\\Users\\you\\Videos', music: 'C:\\Users\\you\\Music'}),
+    defaultFolders: async () => ({ videos: 'C:\\Users\\you\\Downloads', music: 'C:\\Users\\you\\Downloads' }),
     toolsStatus: async () => [],
     setAppearance: async () => undefined
   },

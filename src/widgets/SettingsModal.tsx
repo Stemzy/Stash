@@ -206,7 +206,7 @@ export function SettingsModal() {
       {
         section: 'downloads',
         title: 'Video folder',
-        body: 'Where video downloads are saved.',
+        body: 'Where video downloads are saved. Starts as your Downloads folder.',
         keywords: 'destination path location save',
         stacked: true,
         control: <DestinationPicker path={s.folders.videos} onChange={(videos) => updateSettings({ folders: { ...s.folders, videos } })} />
@@ -214,7 +214,7 @@ export function SettingsModal() {
       {
         section: 'downloads',
         title: 'Music folder',
-        body: 'Where audio downloads are saved.',
+        body: 'Where audio downloads are saved. Starts as your Downloads folder.',
         keywords: 'destination path location save',
         stacked: true,
         control: <DestinationPicker path={s.folders.music} onChange={(music) => updateSettings({ folders: { ...s.folders, music } })} />

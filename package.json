@@ -1,7 +1,7 @@
 {
   "name": "stash",
   "productName": "Stash",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Stash: download videos and music, keep them in your own library, and find their key and BPM.",
   "main": "./out/main/main.js",
   "private": true,
