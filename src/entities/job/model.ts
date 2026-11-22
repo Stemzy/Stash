@@ -9,6 +9,7 @@ import { createStore, useStore } from '@/shared/lib/store'
 import { api, isElectron } from '@/shared/api'
 import { settingsStore } from '@/entities/settings/model'
 import { sampleArtwork } from '@/shared/mock/mockMedia'
+import { playSound } from '@/features/sounds/sounds'
 
 export type UiJob = DownloadJob & {
   /** Sample row shown so History isn't empty on first launch. */
@@ -111,8 +112,18 @@ function upsertReal(job: DownloadJob): void {
   jobsStore.set((list) => (list.some((j) => j.id === job.id) ? list.map((j) => (j.id === job.id ? job : j)) : [...list, job]))
 }
 
+/** Live updates (not the saved list loaded at startup) can make a sound. */
+function liveUpdate(job: DownloadJob): void {
+  const before = jobsStore.get().find((j) => j.id === job.id)?.status
+  upsertReal(job)
+  if (job.status === before) return
+  if (job.status === 'completed') playSound('done')
+  else if (job.status === 'failed') playSound('fail')
+  else if (!before && (job.status === 'queued' || job.status === 'downloading')) playSound('start')
+}
+
 if (isElectron) {
-  api.jobs.onUpdate(upsertReal)
+  api.jobs.onUpdate(liveUpdate)
   // Saved queue and history from earlier sessions.
   void api.jobs.list().then((all) => all.forEach(upsertReal))
 }

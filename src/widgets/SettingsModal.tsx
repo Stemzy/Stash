@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Check, Database, Download, Info, Palette, Search, Wrench, X } from 'lucide-react'
+import { Check, Database, Download, Info, Palette, Play, Search, Volume2, Wrench, X } from 'lucide-react'
+import { playSound, type SoundName } from '@/features/sounds/sounds'
 import type { ToolStatus } from '@shared/types/media'
 import { api, isElectron } from '@/shared/api'
 import { createStore, useStore } from '@/shared/lib/store'
@@ -23,7 +24,7 @@ import { appUpdateActions, useAppUpdate, useUpdates, updatesActions } from '@/en
 // dimmed, the panel itself is semi-transparent. Sections on the left, a search
 // box that finds any setting, and the chosen section on the right.
 
-type SectionId = 'appearance' | 'downloads' | 'tools' | 'data' | 'about'
+type SectionId = 'appearance' | 'sounds' | 'downloads' | 'tools' | 'data' | 'about'
 
 export const settingsUi = createStore<{ open: boolean; section: SectionId }>({ open: false, section: 'appearance' })
 export const useSettingsUi = () => useStore(settingsUi)
@@ -33,7 +34,10 @@ export const closeSettings = () => settingsUi.set((s) => ({ ...s, open: false })
 const SECTIONS: { group: string; items: { id: SectionId; label: string; subtitle: string; icon: ReactNode }[] }[] = [
   {
     group: 'Interface',
-    items: [{ id: 'appearance', label: 'Appearance', subtitle: 'Theme, background and motion.', icon: <Palette size={15} strokeWidth={1.5} /> }]
+    items: [
+      { id: 'appearance', label: 'Appearance', subtitle: 'Theme, background and motion.', icon: <Palette size={15} strokeWidth={1.5} /> },
+      { id: 'sounds', label: 'Sounds', subtitle: 'Little chimes and clicks, 2000s style.', icon: <Volume2 size={15} strokeWidth={1.5} /> }
+    ]
   },
   {
     group: 'Downloads',
@@ -201,6 +205,53 @@ export function SettingsModal() {
             disabled={s.backdrop === 'off'}
             onChange={(v) => updateSettings({ ambientIntensity: { ...s.ambientIntensity, [s.theme]: v } })}
           />
+        )
+      },
+      {
+        section: 'sounds',
+        title: 'Download sounds',
+        body: 'A soft chime when a download finishes, a tiny blip when one starts, and a low tone if one fails.',
+        keywords: 'sound audio chime notification ding finish complete',
+        control: (
+          <div className="flex items-center gap-2">
+            <PreviewButton names={['start', 'done']} label="Preview download sounds" />
+            <Switch ariaLabel="Download sounds" checked={s.sounds.downloads} onChange={(downloads) => updateSettings({ sounds: { ...s.sounds, downloads } })} />
+          </div>
+        )
+      },
+      {
+        section: 'sounds',
+        title: 'Click sounds',
+        body: 'A quiet tick when you click buttons, tabs and switches, like an old click wheel.',
+        keywords: 'sound click tick ipod button feedback',
+        control: (
+          <div className="flex items-center gap-2">
+            <PreviewButton names={['click']} label="Preview click sound" />
+            <Switch ariaLabel="Click sounds" checked={s.sounds.clicks} onChange={(clicks) => updateSettings({ sounds: { ...s.sounds, clicks } })} />
+          </div>
+        )
+      },
+      {
+        section: 'sounds',
+        title: 'Sound volume',
+        body: "Only Stash's own sounds. Downloads and the player aren't affected.",
+        keywords: 'sound volume loud quiet',
+        control: (
+          <div className="flex w-[220px] items-center gap-3">
+            <Scrubber
+              value={s.sounds.volume}
+              max={100}
+              step={5}
+              ariaLabel="Sound volume"
+              className="flex-1"
+              onChange={(v) => updateSettings({ sounds: { ...s.sounds, volume: Math.round(v) } })}
+              onCommit={(v) => {
+                updateSettings({ sounds: { ...s.sounds, volume: Math.round(v) } })
+                playSound('done', true)
+              }}
+            />
+            <span className="tabular w-8 shrink-0 text-right text-label text-fg-2">{s.sounds.volume}</span>
+          </div>
         )
       },
       {
@@ -566,6 +617,21 @@ function ThemePicker({ value, onChange }: { value: ThemeId; onChange: (t: ThemeI
         )
       })}
     </div>
+  )
+}
+
+/** Plays a sound (or a short sequence) even while its switch is off. */
+function PreviewButton({ names, label }: { names: SoundName[]; label: string }) {
+  return (
+    <button
+      aria-label={label}
+      title={label}
+      data-no-click-sound
+      onClick={() => names.forEach((n, i) => setTimeout(() => playSound(n, true), i * 450))}
+      className="flex size-8 items-center justify-center rounded-sm text-fg-3 transition-colors duration-150 hover:bg-ink/[0.07] hover:text-fg"
+    >
+      <Play size={14} strokeWidth={1.75} />
+    </button>
   )
 }
 

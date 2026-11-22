@@ -17,6 +17,8 @@ export interface Settings {
   theme: ThemeId
   /** Ambient intensity 0–100, remembered per theme; a theme with no saved value uses its own default. */
   ambientIntensity: Partial<Record<ThemeId, number>>
+  /** 2000s-style interface sounds; both off by default. Volume 0–100. */
+  sounds: { downloads: boolean; clicks: boolean; volume: number }
 }
 
 // Storage key from before the app was renamed to Stash; kept so saved settings carry over.
@@ -39,7 +41,12 @@ export const settingsStore = createStore<Settings>({
   folders: { videos: saved.folders?.videos ?? '', music: saved.folders?.music ?? '' },
   concurrency: saved.concurrency ?? 2,
   theme: isThemeId(saved.theme) ? saved.theme : 'default',
-  ambientIntensity: cleanIntensity(saved.ambientIntensity)
+  ambientIntensity: cleanIntensity(saved.ambientIntensity),
+  sounds: {
+    downloads: saved.sounds?.downloads === true,
+    clicks: saved.sounds?.clicks === true,
+    volume: typeof saved.sounds?.volume === 'number' && saved.sounds.volume >= 0 && saved.sounds.volume <= 100 ? Math.round(saved.sounds.volume) : 60
+  }
 })
 
 

@@ -1,3 +1,4 @@
+import { installClickSounds } from '@/features/sounds/sounds'
 import { useEffect, type ReactNode } from 'react'
 import { motion } from 'motion/react'
 import { useActivePage, type PageId } from '@/shared/model/navigation'
@@ -39,6 +40,7 @@ export function App() {
   const artwork = useBackdropFor(active)
 
   useEffect(seedSamples, [])
+  useEffect(installClickSounds, [])
 
   return (
     <div className="relative flex h-full flex-col bg-base text-fg">
