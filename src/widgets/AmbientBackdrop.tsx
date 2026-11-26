@@ -1,9 +1,9 @@
 import { memo, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, MotionConfig, motion } from 'motion/react'
 import { createStore, useStore } from '@/shared/lib/store'
-import { ambientColors, prepareAmbientArt, type AmbientArt, type AmbientVariant } from '@/shared/lib/palette'
+import { prepareAmbientArt, type AmbientArt, type AmbientVariant } from '@/shared/lib/palette'
 import { THEMES, type ThemeId } from '@/entities/settings/themes'
-import { level } from '@/features/player/live'
+import { AtmosphereLight, atmosphereColors } from './AtmosphereLight'
 import type { BackdropStyle } from '@/entities/settings/model'
 
 // Which artwork each page wants behind it. Pages set this after a link is analyzed.
@@ -68,7 +68,8 @@ export const AmbientBackdrop = memo(
     live,
     theme = 'default',
     intensity,
-    orbit = true
+    orbit = true,
+    stage = false
   }: {
     src?: string
     style: BackdropStyle
@@ -79,6 +80,8 @@ export const AmbientBackdrop = memo(
     intensity?: number
     /** The light slowly orbits behind the app (Settings → Moving background). */
     orbit?: boolean
+    /** Now Playing: the cover's light at full strength, only darkened at the edges. */
+    stage?: boolean
   }) {
     const treatment = THEMES[theme].ambient
     const variant = treatment.variant
@@ -105,13 +108,13 @@ export const AmbientBackdrop = memo(
       }
     }, [src, style, variant])
 
-    const moving = !!live
+    const moving = !!live || stage
     const visible = style !== 'off' && level > 0 && ((!!src && !failed && scenes.length > 0) || moving)
     const top = scenes[scenes.length - 1]
     // Intensity: up to the theme default the artwork fades in; above it the readability layer opens up a little.
     const D = treatment.defaultIntensity
-    const artOpacity = Math.min(1, level / D)
-    const scrimOpacity = level <= D ? 1 : 1 - (0.45 * (level - D)) / (100 - D)
+    const artOpacity = stage ? 1 : Math.min(1, level / D)
+    const scrimOpacity = stage ? 0 : level <= D ? 1 : 1 - (0.45 * (level - D)) / (100 - D)
     const fade = 'opacity 300ms cubic-bezier(0.22, 1, 0.36, 1)'
 
     return (
@@ -124,7 +127,11 @@ export const AmbientBackdrop = memo(
           // Once fully faded out, drop the old artwork so it can't flash back later.
           onAnimationComplete={() => !visible && setScenes([])}
         >
-          <div className="absolute inset-0" style={{ opacity: artOpacity, transition: fade }}>
+          <div
+            className="absolute inset-0"
+            // Now Playing lets the cover's colours come through richer, like a music app's full-screen player.
+            style={{ opacity: artOpacity, transition: fade }}
+          >
             {/* Rendered even while fading out; the outer opacity does the hiding. */}
             <AnimatePresence initial={false}>
               {scenes.map((sc) => (
@@ -137,11 +144,17 @@ export const AmbientBackdrop = memo(
                   // When the newest scene is fully in, the one beneath is no longer needed.
                   onAnimationComplete={() => sc === top && setScenes((list) => (list.length > 1 ? list.slice(-1) : list))}
                 >
-                  {sc.style === 'blur' ? (
-                    <Artwork image={sc.art.blurred} moving={moving} orbit={orbit} />
-                  ) : (
-                    <Glow colors={ambientColors(sc.art.palette, sc.variant)} moving={moving} light={sc.variant === 'light'} orbit={orbit} />
+                  {/* "Blurred artwork" on the app's pages keeps a faint copy of the cover under the light;
+                      Now Playing (and "Colour glow") is pure atmosphere, no picture. */}
+                  {sc.style === 'blur' && !stage && (
+                    <img src={sc.art.blurred} alt="" draggable={false} className="absolute inset-0 size-full object-cover" style={{ transform: 'scale(1.12)' }} />
                   )}
+                  <AtmosphereLight
+                    colors={atmosphereColors(sc.art.palette, sc.variant, stage)}
+                    opacity={sc.style === 'blur' && !stage ? 0.7 : 1}
+                    moving={orbit || stage}
+                    paused={hidden}
+                  />
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -153,17 +166,17 @@ export const AmbientBackdrop = memo(
                   <VideoGlow key="vg" video={live.video} paused={hidden} variant={variant} orbit={orbit} />
                 )}
               </AnimatePresence>
-              <AnimatePresence>
-                {style !== 'off' && moving && (
-                  <Pools key="pools" colors={ambientColors(top?.art.palette, variant)} paused={hidden} variant={variant} opacity={treatment.pools} orbit={orbit} />
-                )}
-              </AnimatePresence>
             </MotionConfig>
           </div>
 
           {/* Readability: theme-coloured edges, an open pool of light behind the content. */}
           <div className="absolute inset-0" style={{ background: treatment.scrim, opacity: scrimOpacity, transition: fade }} />
           {treatment.tint && <div className="absolute inset-0" style={{ background: treatment.tint, opacity: artOpacity, transition: fade }} />}
+          {/* Now Playing: a faint darkening at the very edges, for depth. */}
+          <div
+            className="absolute inset-0"
+            style={{ background: 'radial-gradient(130% 100% at 50% 45%, transparent 55%, rgb(0 0 0 / 0.3) 100%)', opacity: stage && variant !== 'light' ? 1 : 0, transition: 'opacity 600ms ease' }}
+          />
           <div className="absolute inset-0 mix-blend-overlay" style={{ backgroundImage: NOISE, opacity: treatment.noise }} />
         </motion.div>
       </div>
@@ -176,27 +189,10 @@ export const AmbientBackdrop = memo(
     a.theme === b.theme &&
     a.intensity === b.intensity &&
     a.orbit === b.orbit &&
+    a.stage === b.stage &&
     a.live?.mode === b.live?.mode &&
     a.live?.video === b.live?.video
 )
-
-/** The pre-blurred artwork: a plain image, so drifting it costs almost nothing. */
-function Artwork({ image, moving, orbit }: { image: string; moving: boolean; orbit: boolean }) {
-  return (
-    <Orbit on={orbit} r="2.4vmax" t="17s">
-      <img
-      src={image}
-      alt=""
-      draggable={false}
-      className="absolute inset-0 size-full object-cover will-change-transform"
-      style={{
-        transform: 'scale(1.12)',
-        animation: moving ? 'ambient-art-drift 80s ease-in-out infinite alternate' : undefined
-      }}
-      />
-    </Orbit>
-  )
-}
 
 /**
  * Slowly circles its contents around their resting place. Off = the same layer,
@@ -211,103 +207,6 @@ function Orbit({ on, r, t, reverse, children }: { on: boolean; r: string; t: str
         {children}
       </div>
     </div>
-  )
-}
-
-/** Colour glow mode: soft pools of the artwork's colours, each orbiting on its own. */
-function Glow({ colors, moving, light, orbit }: { colors: string[]; moving: boolean; light?: boolean; orbit: boolean }) {
-  const [a = light ? 'hsl(215 30% 84%)' : 'hsl(215 25% 25%)', b = a, c = b] = colors
-  const spot = (gradient: string) => (
-    <div
-      className="absolute inset-[-6%] will-change-transform"
-      style={{ background: gradient, animation: moving ? 'ambient-art-drift 80s ease-in-out infinite alternate' : undefined }}
-    />
-  )
-  return (
-    <div className="absolute inset-0" style={{ opacity: light ? 0.85 : 0.7 }}>
-      <Orbit on={orbit} r="4.5vmax" t="16s">
-        {spot(`radial-gradient(45% 50% at 50% 20%, ${a} 0%, transparent 70%)`)}
-      </Orbit>
-      <Orbit on={orbit} r="5.5vmax" t="21s" reverse>
-        {spot(`radial-gradient(40% 45% at 82% 38%, ${b} 0%, transparent 70%)`)}
-      </Orbit>
-      <Orbit on={orbit} r="4vmax" t="26s">
-        {spot(`radial-gradient(45% 40% at 30% 72%, ${c} 0%, transparent 72%)`)}
-      </Orbit>
-    </div>
-  )
-}
-
-/** Slightly brighter copy of a muted palette colour (still far from neon). */
-const lift = (c: string) => c.replace(/(\d+)%\)$/, (_, l: string) => `${Math.min(40, Number(l) + 6)}%)`)
-
-/**
- * Three large, slow colour pools. A single frame loop feeds the beat into a CSS
- * variable (no React re-renders); the response is low-passed and small, so the
- * light "breathes" with the music rather than jumping.
- */
-function Pools({ colors, paused, variant, opacity, orbit }: { colors: string[]; paused: boolean; variant: AmbientVariant; opacity: number; orbit: boolean }) {
-  const layer = useRef<HTMLDivElement>(null)
-  const light = variant === 'light'
-  const [
-    a = light ? 'hsl(215 35% 84%)' : 'hsl(215 30% 30%)',
-    b = light ? 'hsl(260 30% 86%)' : 'hsl(260 25% 28%)',
-    c = light ? 'hsl(190 30% 84%)' : 'hsl(190 25% 26%)'
-  ] = colors
-  // Dark themes brighten the pool colours slightly; light themes already get pastel colours.
-  const tone = (col: string) => (light ? col : lift(col))
-
-  useEffect(() => {
-    if (paused) return
-    let raf = 0
-    let v = 0
-    let written = -1
-    const tick = () => {
-      v += (level() - v) * 0.18 // gentle attack and release
-      if (Math.abs(v - written) > 0.004) {
-        written = v
-        layer.current?.style.setProperty('--pulse', v.toFixed(3))
-      }
-      raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  }, [paused])
-
-  const pool = (color: string, anim: string, left: string, top: string) => (
-    <div
-      className="absolute size-[64vmax] rounded-full will-change-transform"
-      style={{
-        left,
-        top,
-        background: `radial-gradient(closest-side, ${tone(color)}, transparent)`,
-        animation: anim
-      }}
-    />
-  )
-
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 2 }} className="absolute inset-0">
-      <div
-        ref={layer}
-        className="absolute inset-0 will-change-transform"
-        style={{
-          // --pulse is 0..1: a barely-there swell and brightening on each kick.
-          transform: 'scale(calc(1 + var(--pulse, 0) * 0.012))',
-          opacity: `calc(${opacity} + var(--pulse, 0) * 0.1)` as unknown as number
-        }}
-      >
-        <Orbit on={orbit} r="5vmax" t="18s">
-          {pool(a, 'ambient-drift-a 72s ease-in-out infinite', '-8%', '-28%')}
-        </Orbit>
-        <Orbit on={orbit} r="6vmax" t="23s" reverse>
-          {pool(b, 'ambient-drift-b 88s ease-in-out infinite', '44%', '-20%')}
-        </Orbit>
-        <Orbit on={orbit} r="4.5vmax" t="29s">
-          {pool(c, 'ambient-drift-c 104s ease-in-out infinite', '12%', '30%')}
-        </Orbit>
-      </div>
-    </motion.div>
   )
 }
 

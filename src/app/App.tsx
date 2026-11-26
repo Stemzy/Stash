@@ -20,6 +20,8 @@ import { HistoryPage } from '@/pages/HistoryPage'
 import { LibraryPage } from '@/pages/LibraryPage'
 import { LabPage } from '@/pages/LabPage'
 import { MusicBar } from '@/widgets/MusicBar'
+import { NowPlaying, useNowPlaying } from '@/features/player/NowPlaying'
+import { usePlayer } from '@/features/player/model'
 import { SettingsModal } from '@/widgets/SettingsModal'
 
 const PAGES: Record<PageId, () => ReactNode> = {
@@ -37,7 +39,11 @@ export function App() {
   const { backdrop, liveBackdrop, theme, backgroundArt } = settings
   const intensity = intensityFor(settings, theme)
   const live = useLive()
-  const artwork = useBackdropFor(active)
+  const pageArtwork = useBackdropFor(active)
+  const np = useNowPlaying()
+  const music = usePlayer()
+  const stage = np.open && !!music.current
+  const artwork = stage ? music.current?.thumbnailUrl : pageArtwork
 
   useEffect(seedSamples, [])
   useEffect(installClickSounds, [])
@@ -50,13 +56,27 @@ export function App() {
         theme={theme}
         intensity={intensity}
         orbit={liveBackdrop}
-        // Moving background only in the Library, while something plays.
-        live={active === 'library' && liveBackdrop && live.mode !== 'none' ? { mode: live.mode, video: live.video } : undefined}
+        // Reacts to the beat in the Library and on Now Playing, while something plays.
+        live={(stage || active === 'library') && live.mode !== 'none' ? { mode: live.mode, video: live.video } : undefined}
+        stage={stage}
       />
       {/* Above the artwork tint, below every piece of UI. */}
-      {backgroundArt && <BackgroundArt theme={theme} />}
+      {backgroundArt && (
+        <motion.div className="pointer-events-none absolute inset-0" initial={false} animate={{ opacity: stage ? 0 : 1 }} transition={t.base}>
+          <BackgroundArt theme={theme} />
+        </motion.div>
+      )}
       <TitleBar />
       <div className="relative flex min-h-0 flex-1 border-t border-line">
+        <NowPlaying />
+        <motion.div
+          className="flex min-w-0 flex-1"
+          initial={false}
+          animate={{ opacity: stage ? 0 : 1 }}
+          transition={t.base}
+          style={{ pointerEvents: stage ? 'none' : undefined }}
+          aria-hidden={stage || undefined}
+        >
         <Sidebar />
         <main className="relative flex min-w-0 flex-1 flex-col">
           <div className="relative min-h-0 flex-1">
@@ -81,6 +101,7 @@ export function App() {
           {(active === 'videos' || active === 'music') && <QueueStrip />}
           <MusicBar />
         </main>
+        </motion.div>
       </div>
       <SettingsModal />
       <Toaster />

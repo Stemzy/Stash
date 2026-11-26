@@ -77,7 +77,7 @@ export function QueueStrip() {
         onClick={() => active.length > 0 && setOpen((o) => !o)}
         aria-expanded={open}
         className={cn(
-          'glass-bar flex h-10 w-full items-center gap-3 px-6 text-label transition-colors duration-150',
+          'glass-bar glass-deep relative flex h-10 w-full items-center gap-3 px-6 text-label transition-colors duration-150',
           active.length > 0 ? 'hover:bg-[var(--glass-bar-hover)]' : 'cursor-default'
         )}
       >

@@ -1,8 +1,9 @@
+import { nowPlaying } from '@/features/player/NowPlaying'
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { ArrowLeft, AudioLines, Clapperboard, FlaskConical, FolderOpen, Music2, Pause, Play, Search, Trash2 } from 'lucide-react'
 import type { LibraryItem } from '@shared/types/library'
-import { useLibrary, reloadLibrary } from '@/features/player/library'
+import { useLibrary, reloadLibrary, libraryTabStore, useLibraryTab } from '@/features/player/library'
 import { player, usePlayer } from '@/features/player/model'
 import { VideoPlayer } from '@/features/player/VideoPlayer'
 import { jobActions } from '@/entities/job/model'
@@ -20,11 +21,18 @@ import { labActions } from '@/features/lab/model'
 
 type Tab = 'video' | 'audio'
 
+/** Playing a song from the list opens the full player. */
+function playAndOpen(track: LibraryItem, list: LibraryItem[]) {
+  player.play(track, list)
+  nowPlaying.open()
+}
+
 export function LibraryPage() {
   const { items, loaded } = useLibrary()
   const active = useActivePage()
   const music = usePlayer()
-  const [tab, setTab] = useState<Tab>('video')
+  const tab = useLibraryTab()
+  const setTab = (t: Tab) => libraryTabStore.set(t)
   const [query, setQuery] = useState('')
   const [watching, setWatching] = useState<LibraryItem | null>(null)
   const [toDelete, setToDelete] = useState<LibraryItem | null>(null)
@@ -145,7 +153,7 @@ export function LibraryPage() {
         />
         <div className="flex items-center gap-2">
           {tab === 'audio' && list.length > 0 && (
-            <Button variant="primary" icon={<Play size={12} strokeWidth={0} fill="currentColor" />} onClick={() => player.play(list[0]!, list)} className="px-3">
+            <Button variant="primary" icon={<Play size={12} strokeWidth={0} fill="currentColor" />} onClick={() => playAndOpen(list[0]!, list)} className="px-3">
               Play all
             </Button>
           )}
@@ -241,11 +249,11 @@ export function LibraryPage() {
           {list.map((s, idx) => {
             const isCurrent = music.current?.id === s.id
             const playingThis = isCurrent && music.playing
-            const playToggle = () => (isCurrent ? player.toggle() : player.play(s, list))
+            const playToggle = () => (isCurrent ? player.toggle() : playAndOpen(s, list))
             return (
               <div
                 key={s.id}
-                onDoubleClick={() => player.play(s, list)}
+                onDoubleClick={() => playAndOpen(s, list)}
                 aria-current={isCurrent || undefined}
                 className={cn(
                   'group/row -mx-3 flex items-center gap-3.5 rounded-sm px-3 py-2.5 transition-colors duration-150',

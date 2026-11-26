@@ -9,6 +9,10 @@ import { player } from './model'
 export const libraryStore = createStore<{ items: LibraryItem[]; loaded: boolean }>({ items: [], loaded: false })
 export const useLibrary = () => useStore(libraryStore)
 
+/** Which Library tab is showing (kept here so the full player can go back to Music). */
+export const libraryTabStore = createStore<'video' | 'audio'>('video')
+export const useLibraryTab = () => useStore(libraryTabStore)
+
 let inflight: Promise<void> | null = null
 export function reloadLibrary(): Promise<void> {
   inflight ??= api.library

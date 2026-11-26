@@ -17,8 +17,10 @@ export interface Settings {
   theme: ThemeId
   /** Ambient intensity 0–100, remembered per theme; a theme with no saved value uses its own default. */
   ambientIntensity: Partial<Record<ThemeId, number>>
+  /** The pop-and-punch intro when Stash opens (on unless turned off). */
+  startupAnimation: boolean
   /** 2000s-style interface sounds; both off by default. Volume 0–100. */
-  sounds: { downloads: boolean; clicks: boolean; volume: number }
+  sounds: { downloads: boolean; clicks: boolean; volume: number; /** The pop-and-punch sounds when Stash opens (on unless turned off). */ startup: boolean }
 }
 
 // Storage key from before the app was renamed to Stash; kept so saved settings carry over.
@@ -42,9 +44,11 @@ export const settingsStore = createStore<Settings>({
   concurrency: saved.concurrency ?? 2,
   theme: isThemeId(saved.theme) ? saved.theme : 'default',
   ambientIntensity: cleanIntensity(saved.ambientIntensity),
+  startupAnimation: saved.startupAnimation !== false,
   sounds: {
     downloads: saved.sounds?.downloads === true,
     clicks: saved.sounds?.clicks === true,
+    startup: saved.sounds?.startup !== false,
     volume: typeof saved.sounds?.volume === 'number' && saved.sounds.volume >= 0 && saved.sounds.volume <= 100 ? Math.round(saved.sounds.volume) : 60
   }
 })

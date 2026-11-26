@@ -7,8 +7,100 @@
       content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: app-thumb:; media-src 'self' app-media:; font-src 'self' data:; connect-src 'self' app-media:"
     />
     <title>Stash</title>
+    <style>
+      /* Startup intro (animated by src/app/splash.ts): the app shows, the icon pops in over a
+         light frosted layer, gets punched and flies off. Static styles only; the motion lives
+         in splash.ts. Everything starts invisible, so the app is what you see first. */
+      #splash {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483000;
+        display: grid;
+        place-items: center;
+        pointer-events: none;
+        overflow: hidden;
+      }
+      #splash > * {
+        grid-area: 1 / 1;
+      }
+      /* Frosted layer behind the icon while it's on stage. */
+      #splash .glass {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        background: color-mix(in srgb, var(--color-base, #000) 45%, transparent);
+        backdrop-filter: blur(10px) saturate(1.1);
+      }
+      #splash .mark,
+      #splash .ghost {
+        position: relative;
+        width: 150px;
+        height: 150px;
+        opacity: 0;
+        will-change: transform, opacity, filter;
+      }
+      #splash .mark img,
+      #splash .ghost img {
+        width: 100%;
+        height: 100%;
+        filter: drop-shadow(0 10px 24px rgb(0 0 0 / 0.4));
+      }
+      #splash .glint {
+        position: absolute;
+        left: 6%;
+        top: 4%;
+        width: 34%;
+        height: 34%;
+        border-radius: 50%;
+        background: radial-gradient(closest-side, rgb(255 255 255 / 0.95), rgb(255 200 230 / 0.35) 45%, transparent);
+        mix-blend-mode: screen;
+        opacity: 0;
+      }
+      /* Comic-style impact burst behind the icon. */
+      #splash .burst {
+        position: absolute;
+        width: 230px;
+        height: 230px;
+        opacity: 0;
+        background: radial-gradient(closest-side, rgb(255 255 255 / 0.95), rgb(255 150 205 / 0.85) 38%, rgb(236 92 160 / 0) 72%);
+        clip-path: polygon(50% 0%, 56% 34%, 79% 9%, 64% 40%, 98% 27%, 68% 50%, 100% 62%, 64% 60%, 82% 92%, 54% 66%, 50% 100%, 44% 66%, 18% 92%, 36% 60%, 0% 62%, 32% 50%, 2% 27%, 36% 40%, 21% 9%, 44% 34%);
+      }
+      /* Shockwave ring on the punch. */
+      #splash .ring {
+        width: 170px;
+        height: 170px;
+        border-radius: 50%;
+        border: 3px solid rgb(255 210 235 / 0.9);
+        box-shadow: 0 0 24px rgb(236 92 160 / 0.6), inset 0 0 18px rgb(236 92 160 / 0.4);
+        opacity: 0;
+      }
+      /* The far-away twinkle where it vanishes (top-right of centre). */
+      #splash .twinkle {
+        position: absolute;
+        left: calc(50% + 36vw - 18px);
+        top: calc(50% - 33vh - 18px);
+        width: 36px;
+        height: 36px;
+        opacity: 0;
+        background: radial-gradient(closest-side, #fff, rgb(255 190 225 / 0.6) 55%, transparent);
+        clip-path: polygon(50% 0%, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0% 50%, 40% 40%);
+      }
+    </style>
   </head>
   <body>
+    <div id="splash" aria-hidden="true">
+      <div class="glass"></div>
+      <div class="burst"></div>
+      <div class="ring"></div>
+      <div class="ghost"><img src="./assets/stash-icon-256.png" alt="" draggable="false" /></div>
+      <div class="ghost"><img src="./assets/stash-icon-256.png" alt="" draggable="false" /></div>
+      <div class="ghost"><img src="./assets/stash-icon-256.png" alt="" draggable="false" /></div>
+      <div class="mark">
+        <img src="./assets/stash-icon-256.png" alt="" draggable="false" />
+        <div class="glint"></div>
+      </div>
+      <div class="twinkle"></div>
+    </div>
     <div id="root"></div>
     <script type="module" src="./main.tsx"></script>
   </body>

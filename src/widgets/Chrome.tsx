@@ -38,7 +38,7 @@ export function Sidebar() {
   const settingsOpen = useSettingsUi().open
 
   return (
-    <nav aria-label="Main" className="flex w-[176px] shrink-0 flex-col border-r border-line bg-sidebar/70 px-3 pb-3 pt-3 backdrop-blur-xl">
+    <nav aria-label="Main" className="glass-deep relative flex w-[176px] shrink-0 flex-col border-r border-line bg-sidebar/70 px-3 pb-3 pt-3">
       <div className="flex flex-col gap-0.5">
         {MAIN.map((i) => (
           <SidebarItem key={i.id} {...i} active={active === i.id} />

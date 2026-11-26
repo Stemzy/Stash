@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { MotionConfig } from 'motion/react'
 import './app/styles/global.css'
 import { App } from './app/App'
+import { runSplash } from './app/splash'
 
 // Files dropped anywhere except a drop zone do nothing (instead of opening in the window).
 for (const type of ['dragover', 'drop'] as const) {
@@ -20,3 +21,5 @@ createRoot(document.getElementById('root')!).render(
     </MotionConfig>
   </StrictMode>
 )
+
+void runSplash()

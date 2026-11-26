@@ -1,10 +1,10 @@
 import type { ButtonHTMLAttributes } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { AlertCircle, Pause, Play, SkipBack, SkipForward, Volume1, Volume2, VolumeX, X } from 'lucide-react'
+import { AlertCircle, Maximize2, Pause, Play, SkipBack, SkipForward, Volume1, Volume2, VolumeX, X } from 'lucide-react'
+import { nowPlaying } from '@/features/player/NowPlaying'
 import { player, usePlayer } from '@/features/player/model'
 import { Artwork } from '@/entities/media/MediaPreview'
 import { cn, formatDuration } from '@/shared/lib/format'
-import { navigate } from '@/shared/model/navigation'
 import { t } from '@/shared/lib/motion'
 import { Scrubber } from '@/shared/ui/Scrubber'
 
@@ -12,7 +12,6 @@ import { Scrubber } from '@/shared/ui/Scrubber'
 export function MusicBar() {
   const s = usePlayer()
   const track = s.current
-  const i = track ? s.queue.findIndex((q) => q.id === track.id) : -1
   const VolIcon = s.muted || s.volume === 0 ? VolumeX : s.volume < 0.5 ? Volume1 : Volume2
 
   return (
@@ -26,15 +25,15 @@ export function MusicBar() {
           // Glass: dark enough to keep text crisp, a restrained blur, a hairline + faint top highlight.
           className={cn(
             'relative z-10 grid h-[68px] shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,1fr)] items-center gap-4 px-4',
-            'glass-bar'
+            'glass-bar glass-deep'
           )}
           aria-label="Now playing"
         >
           {/* Track */}
           <button
-            onClick={() => navigate('library')}
+            onClick={nowPlaying.open}
             className="group/track -ml-1.5 flex min-w-0 items-center gap-3 rounded-sm py-1 pl-1.5 pr-2.5 text-left transition-colors duration-150 hover:bg-ink/[0.04]"
-            title="Show in Library"
+            title="Open the player"
           >
             <Artwork src={track.thumbnailUrl} shape="square" size="sm" />
             <div className="min-w-0 leading-none">
@@ -85,7 +84,7 @@ export function MusicBar() {
                     </motion.span>
                   </AnimatePresence>
                 </button>
-                <BarButton label="Next" onClick={player.next} disabled={i < 0 || i >= s.queue.length - 1}>
+                <BarButton label="Next" onClick={player.next} disabled={!player.hasNext()}>
                   <SkipForward size={15} strokeWidth={1.75} fill="currentColor" />
                 </BarButton>
               </div>
@@ -104,6 +103,9 @@ export function MusicBar() {
             </BarButton>
             <Scrubber value={s.muted ? 0 : s.volume} max={1} step={0.1} ariaLabel="Volume" className="w-24" onCommit={player.setVolume} onChange={player.setVolume} />
             <span className="mx-1.5 h-5 w-px bg-ink/[0.08]" aria-hidden />
+            <BarButton label="Open the player" onClick={nowPlaying.open}>
+              <Maximize2 size={14} strokeWidth={1.75} />
+            </BarButton>
             <BarButton label="Close player" onClick={player.stop}>
               <X size={15} strokeWidth={1.75} />
             </BarButton>

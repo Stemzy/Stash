@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { AnimatePresence, motion } from 'motion/react'
 import { Check, Database, Download, Info, Palette, Play, Search, Volume2, Wrench, X } from 'lucide-react'
 import { playSound, type SoundName } from '@/features/sounds/sounds'
+import { runSplash } from '@/app/splash'
 import type { ToolStatus } from '@shared/types/media'
 import { api, isElectron } from '@/shared/api'
 import { createStore, useStore } from '@/shared/lib/store'
@@ -230,6 +231,33 @@ export function SettingsModal() {
             <Switch ariaLabel="Click sounds" checked={s.sounds.clicks} onChange={(clicks) => updateSettings({ sounds: { ...s.sounds, clicks } })} />
           </div>
         )
+      },
+      {
+        section: 'sounds',
+        title: 'Startup animation',
+        body: 'When Stash opens, the icon pops in, gets punched and flies off into the distance.',
+        keywords: 'startup launch open splash intro animation icon punch',
+        control: (
+          <div className="flex items-center gap-2">
+            <button
+              aria-label="Play the startup animation"
+              title="Play the startup animation"
+              data-no-click-sound
+              onClick={() => void runSplash(true)}
+              className="flex size-8 items-center justify-center rounded-sm text-fg-3 transition-colors duration-150 hover:bg-ink/[0.07] hover:text-fg"
+            >
+              <Play size={14} strokeWidth={1.75} />
+            </button>
+            <Switch ariaLabel="Startup animation" checked={s.startupAnimation} onChange={(startupAnimation) => updateSettings({ startupAnimation })} />
+          </div>
+        )
+      },
+      {
+        section: 'sounds',
+        title: 'Startup sound',
+        body: s.startupAnimation ? 'The swoosh and the punch that go with the startup animation.' : 'Plays with the startup animation (which is off).',
+        keywords: 'sound startup launch open splash whoosh intro',
+        control: <Switch ariaLabel="Startup sound" checked={s.sounds.startup} onChange={(startup) => updateSettings({ sounds: { ...s.sounds, startup } })} />
       },
       {
         section: 'sounds',

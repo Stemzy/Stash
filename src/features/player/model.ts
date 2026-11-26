@@ -16,16 +16,24 @@ export interface PlayerState {
   volume: number
   muted: boolean
   error: boolean
+  shuffle: boolean
+  /** off: stop at the end of the list; all: start the list again; one: repeat this song. */
+  repeat: 'off' | 'all' | 'one'
 }
 
 // Storage key from before the app was renamed to Stash; kept so saved settings carry over.
 const VOL_KEY = 'downloader.volume'
 const savedVol = (() => {
   try {
-    const v = JSON.parse(localStorage.getItem(VOL_KEY) ?? 'null') as { volume?: number; muted?: boolean } | null
-    return { volume: typeof v?.volume === 'number' ? Math.min(1, Math.max(0, v.volume)) : 0.8, muted: !!v?.muted }
+    const v = JSON.parse(localStorage.getItem(VOL_KEY) ?? 'null') as { volume?: number; muted?: boolean; shuffle?: boolean; repeat?: string } | null
+    return {
+      volume: typeof v?.volume === 'number' ? Math.min(1, Math.max(0, v.volume)) : 0.8,
+      muted: !!v?.muted,
+      shuffle: v?.shuffle === true,
+      repeat: (v?.repeat === 'all' || v?.repeat === 'one' ? v.repeat : 'off') as PlayerState['repeat']
+    }
   } catch {
-    return { volume: 0.8, muted: false }
+    return { volume: 0.8, muted: false, shuffle: false, repeat: 'off' as const }
   }
 })()
 
@@ -53,11 +61,46 @@ audio.addEventListener('timeupdate', () => set({ time: audio.currentTime }))
 audio.addEventListener('durationchange', () => set({ duration: isFinite(audio.duration) ? audio.duration : 0 }))
 audio.addEventListener('error', () => set({ error: true, playing: false }))
 audio.addEventListener('ended', () => {
-  const { queue, current } = playerStore.get()
-  const i = queue.findIndex((t) => t.id === current?.id)
-  if (i >= 0 && i < queue.length - 1) player.play(queue[i + 1]!, queue)
+  if (playerStore.get().repeat === 'one') {
+    audio.currentTime = 0
+    void audio.play().catch(() => undefined)
+    return
+  }
+  const to = step(1)
+  if (to) player.play(to)
   else set({ playing: false, time: 0 })
 })
+
+// The order Next/Previous follow: the list as shown, or shuffled (current song first).
+let order: string[] = []
+function rebuildOrder(): void {
+  const { queue, current, shuffle } = playerStore.get()
+  const ids = queue.map((t) => t.id)
+  if (!shuffle) {
+    order = ids
+    return
+  }
+  const rest = ids.filter((id) => id !== current?.id)
+  for (let i = rest.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[rest[i], rest[j]] = [rest[j]!, rest[i]!]
+  }
+  order = current ? [current.id, ...rest] : rest
+}
+
+/** The song `dir` steps away in play order (wrapping when Repeat is on), if any. */
+function step(dir: 1 | -1): LibraryItem | undefined {
+  const { queue, current, repeat } = playerStore.get()
+  if (!queue.length) return undefined
+  if (order.length !== queue.length || (current && !order.includes(current.id))) rebuildOrder()
+  let i = current ? order.indexOf(current.id) + dir : 0
+  if (i >= order.length || i < 0) {
+    if (repeat !== 'all') return undefined
+    if (dir === 1 && playerStore.get().shuffle) rebuildOrder() // a fresh shuffle each time round
+    i = dir === 1 ? 0 : order.length - 1
+  }
+  return queue.find((t) => t.id === order[i])
+}
 
 /** Called by the video player so music and video never play at once. */
 let onMusicStart: (() => void) | undefined
@@ -75,6 +118,7 @@ export const player = {
     }
     audio.src = track.mediaUrl
     set({ current: track, queue: queue ?? s.queue, time: 0, duration: track.durationSec ?? 0, error: false })
+    if (queue) rebuildOrder() // a new list was chosen
     void audio.play().catch(() => undefined)
   },
   toggle() {
@@ -90,17 +134,28 @@ export const player = {
     if (isFinite(sec)) audio.currentTime = Math.max(0, Math.min(sec, audio.duration || sec))
   },
   next() {
-    const { queue, current } = playerStore.get()
-    const i = queue.findIndex((t) => t.id === current?.id)
-    if (i >= 0 && i < queue.length - 1) player.play(queue[i + 1]!, queue)
+    const to = step(1)
+    if (to) player.play(to)
   },
   previous() {
-    const { queue, current } = playerStore.get()
     // Like most players: restart the song unless it just began.
     if (audio.currentTime > 3) return player.seek(0)
-    const i = queue.findIndex((t) => t.id === current?.id)
-    if (i > 0) player.play(queue[i - 1]!, queue)
+    const to = step(-1)
+    if (to) player.play(to)
     else player.seek(0)
+  },
+  /** Whether Next would go anywhere (for greying the button out). */
+  hasNext: () => !!step(1),
+  toggleShuffle() {
+    set({ shuffle: !playerStore.get().shuffle })
+    rebuildOrder()
+    persistVolume()
+  },
+  /** off → all → one → off */
+  cycleRepeat() {
+    const r = playerStore.get().repeat
+    set({ repeat: r === 'off' ? 'all' : r === 'all' ? 'one' : 'off' })
+    persistVolume()
   },
   setVolume(v: number) {
     audio.volume = Math.min(1, Math.max(0, v))
@@ -129,7 +184,8 @@ export const player = {
 
 function persistVolume() {
   try {
-    localStorage.setItem(VOL_KEY, JSON.stringify({ volume: audio.volume, muted: audio.muted }))
+    const { shuffle, repeat } = playerStore.get()
+    localStorage.setItem(VOL_KEY, JSON.stringify({ volume: audio.volume, muted: audio.muted, shuffle, repeat }))
   } catch {
     /* not critical */
   }
