@@ -132,7 +132,7 @@ function compile(gl: WebGLRenderingContext, type: number, src: string): WebGLSha
 }
 
 /** Seconds of "atmosphere time" per real second: slow and calm, calibrated against the reference. */
-const SPEED = 4.5
+const SPEED = 1.5
 
 const css = ([r, g, b]: RGB) => `rgb(${Math.round(r * 255)} ${Math.round(g * 255)} ${Math.round(b * 255)})`
 
@@ -142,23 +142,38 @@ const css = ([r, g, b]: RGB) => `rgb(${Math.round(r * 255)} ${Math.round(g * 255
  * huge, blurred light) takes over so it still moves.
  */
 export function AtmosphereLight({ colors, opacity = 1, moving, paused }: { colors: AtmosphereColors; opacity?: number; moving: boolean; paused: boolean }) {
-  const ref = useRef<HTMLCanvasElement>(null)
+  const ref = useRef<HTMLDivElement>(null)
   const [noGl, setNoGl] = useState(false)
   const live = useRef({ colors, moving, paused })
   live.current = { colors, moving, paused }
 
   useEffect(() => {
-    const el = ref.current
-    const gl = el?.getContext('webgl', { antialias: false, alpha: false, powerPreference: 'low-power' })
-    if (!el || !gl) return setNoGl(true)
+    // A brand-new canvas every time: if this starts twice (React does that in development),
+    // a canvas whose WebGL was shut down on the way out can't be reused, so never reuse one.
+    const host = ref.current
+    if (!host) return
+    const el = document.createElement('canvas')
+    el.className = 'absolute inset-0 size-full'
+    host.appendChild(el)
+    const gl = el.getContext('webgl', { antialias: false, alpha: false, powerPreference: 'low-power' })
+    if (!gl) {
+      el.remove()
+      return setNoGl(true)
+    }
     const vs = compile(gl, gl.VERTEX_SHADER, VERT)
     const fs = compile(gl, gl.FRAGMENT_SHADER, FRAG.replace('precision highp float;', gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT)?.precision ? 'precision highp float;' : 'precision mediump float;'))
     const prog = gl.createProgram()
-    if (!vs || !fs || !prog) return setNoGl(true)
+    if (!vs || !fs || !prog) {
+      el.remove()
+      return setNoGl(true)
+    }
     gl.attachShader(prog, vs)
     gl.attachShader(prog, fs)
     gl.linkProgram(prog)
-    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return setNoGl(true)
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+      el.remove()
+      return setNoGl(true)
+    }
     gl.useProgram(prog)
     const buf = gl.createBuffer()
     gl.bindBuffer(gl.ARRAY_BUFFER, buf)
@@ -214,6 +229,7 @@ export function AtmosphereLight({ colors, opacity = 1, moving, paused }: { color
       cancelAnimationFrame(raf)
       clearTimeout(timer)
       gl.getExtension('WEBGL_lose_context')?.loseContext()
+      el.remove()
     }
   }, [])
 
@@ -234,8 +250,9 @@ export function AtmosphereLight({ colors, opacity = 1, moving, paused }: { color
                 borderRadius: '50%',
                 background: `radial-gradient(closest-side, ${css(col)}, transparent)`,
                 animationName: `atmo-${i}`,
-                animationDuration: `${47 + i * 13}s`,
-                animationDelay: `${-i * 17}s`,
+                // Same pace as the WebGL version (its SPEED), so both feel alike.
+                animationDuration: `${((47 + i * 13) * 0.6) / SPEED}s`,
+                animationDelay: `${(-i * 17 * 0.6) / SPEED}s`,
                 animationPlayState: moving && !paused ? 'running' : 'paused'
               }}
             />
@@ -245,5 +262,5 @@ export function AtmosphereLight({ colors, opacity = 1, moving, paused }: { color
     )
   }
   // Slightly oversized + blurred: soft as fog, with no edge showing at the window border.
-  return <canvas ref={ref} className="absolute inset-[-4%] size-[108%]" style={{ opacity, filter: 'blur(min(44px, 3.2vmin))' }} />
+  return <div ref={ref} className="absolute inset-[-4%] size-[108%]" style={{ opacity, filter: 'blur(min(44px, 3.2vmin))' }} />
 }
